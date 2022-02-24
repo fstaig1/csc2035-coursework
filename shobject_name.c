@@ -2,6 +2,9 @@
  * Replace the following string of 0s with your student number
  * 200799272
  */
+
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "sim_config.h"
@@ -20,5 +23,29 @@ const char* SHOBJ_NAME_FORMAT = "/csc2035.%.9s.%.12s";
  *      environment (use "anon" if the function returns NULL)
  */
 char* shobject_name(char* name_buf, const char* label) {
-    return NULL;
+
+    char* result;
+    char* user = getenv("USER");
+
+    if (!user) {
+        user = "anon";
+    }
+
+    if(name_buf) {
+        int r = snprintf(name_buf,  // buffer
+                        MAX_NAME_SIZE,  // size of buffer
+                        SHOBJ_NAME_FORMAT,  // format string
+                        user,  // user
+                        label  // application label
+                        );
+        result = r < 0? NULL : name_buf;
+    } 
+    else{
+        int r = asprintf(&result,
+                        SHOBJ_NAME_FORMAT,
+                        user,
+                        label);
+    }
+    
+    return result;
 }
