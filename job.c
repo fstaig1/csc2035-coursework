@@ -27,7 +27,7 @@ job_t* job_copy(job_t* dst, job_t* src) {
  * currently only sets the pid and id fields of a job to zero.
  */
 void job_init(job_t* job) {
-    job->pid = 0;
+    job->pid = getpid;
     job->id = 0;
 }
 

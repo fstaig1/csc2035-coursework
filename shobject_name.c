@@ -4,7 +4,6 @@
  */
 
 #define _GNU_SOURCE
-
 #include <stdlib.h>
 #include <stdio.h>
 #include "sim_config.h"
@@ -50,9 +49,9 @@ char* shobject_name(char* name_buf, const char* label) {
                         SHOBJ_NAME_FORMAT,
                         user,
                         label);
+        free(name_buf);
         
     }
     
     return result;
 }
-
