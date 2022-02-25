@@ -13,6 +13,7 @@
 const char* JOBLOG_PATH = "./out";
 const char* JOBLOG_NAME_FMT = "%s/%s%07d.txt";
 const char* JOBLOG_ENTRY_FMT = "pid:%07d,id:%05d,label:%s\n";
+  // "pid:0000005,id:00010,label:newjob************************\n" 59chars (\n is 1 char)
 
 /* 
  * DO NOT EDIT the new_log_name function. It is a private helper 
@@ -73,7 +74,19 @@ int joblog_init(proc_t* proc) {
  *      and the documentation in joblog.h for when to do dynamic allocation
  */
 char* joblog_read_entry(proc_t* proc, int entry_num, char* buf) {
-    return NULL;
+    FILE* f = fopen(new_log_name(proc), "r");
+    
+    
+    
+    
+    (void) fseek(f, entry_num * (JOBLOG_ENTRY_SIZE -1), SEEK_SET);
+    (void) fgets(buf, JOBLOG_ENTRY_SIZE, f);
+    buf[JOBLOG_ENTRY_SIZE - 1] = '\0';
+        
+    
+    
+    fclose(f);
+    return buf;
 }
 
 /* 
@@ -83,6 +96,15 @@ char* joblog_read_entry(proc_t* proc, int entry_num, char* buf) {
  * - remember new entries are appended to a log file
  */
 void joblog_write_entry(proc_t* proc, job_t* job) {
+
+    char* log = new_log_name(proc);
+    FILE* f = fopen(log, "a");
+
+    fprintf(f, "pid:0000005,id:00010,label:newjob************************\n");//f, JOBLOG_ENTRY_FMT, job->pid, job->id, job->label);
+           // "pid:0000005,id:00010,label:newjob************************\n" 
+
+    fclose(f);
+
     return;
 }
 

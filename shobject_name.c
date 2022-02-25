@@ -41,7 +41,6 @@ char* shobject_name(char* name_buf, const char* label) {
                         user,  // user
                         label  // application label
                         );
-        name_buf[MAX_NAME_SIZE-1] = '\0';
         result = r < 0? NULL : name_buf;
     } 
     else{

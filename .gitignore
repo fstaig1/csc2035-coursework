@@ -51,3 +51,4 @@ Module.symvers
 Mkfile.old
 dkms.conf
 a.out
+out/bwait_cons0000000.txt
