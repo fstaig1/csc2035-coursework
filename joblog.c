@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include "joblog.h"
@@ -79,7 +80,7 @@ char* joblog_read_entry(proc_t* proc, int entry_num, char* buf) {
     
     
     
-    (void) fseek(f, entry_num * (JOBLOG_ENTRY_SIZE -1), SEEK_SET);
+    (void) fseek(f, entry_num * (JOBLOG_ENTRY_SIZE), SEEK_SET);
     (void) fgets(buf, JOBLOG_ENTRY_SIZE, f);
     buf[JOBLOG_ENTRY_SIZE - 1] = '\0';
         
@@ -100,7 +101,7 @@ void joblog_write_entry(proc_t* proc, job_t* job) {
     char* log = new_log_name(proc);
     FILE* f = fopen(log, "a");
 
-    fprintf(f, "pid:0000005,id:00010,label:newjob************************\n");//f, JOBLOG_ENTRY_FMT, job->pid, job->id, job->label);
+    fprintf(f, JOBLOG_ENTRY_FMT, job->pid, job->id, job->label);
            // "pid:0000005,id:00010,label:newjob************************\n" 
 
     fclose(f);
