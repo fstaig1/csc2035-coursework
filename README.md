@@ -1,5 +1,12 @@
-# csc2035 coursework     Due 23 Mar by 15:00
- 
- 
- 
-https://ncl.instructure.com/courses/39981/assignments/154404
+# csc2035 coursework 1
+first coursework assignment for my systems programming module
+
+i only edited the below files
+
+ipc_jobqueue.c
+sem_jobqueue.c
+mutex_peterson.c
+jobqueue.c
+job.c
+joblog.c
+shobject_name.c
