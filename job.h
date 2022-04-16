@@ -20,13 +20,15 @@
  * 
  * The combination of job.pid and job.id can be used to ensure globally unique  
  * jobs for a given host. That is, a pid uniquely identifies a process and a 
- * producer can ensure that the job ids it generates are unique.
+ * producer can ensure that the job ids it generates are unique. Uniqueness 
+ * is imposed by applications using a job and not by the job functions 
+ * specified in this header file.
+ * 
  *
  * See also:
  * job_new, job_copy, job_set and job_delete - for information on creation
  *      and destruction of job objects
- * sim_config.h - for specification of the maximum shared object name: 
- *      MAX_NAME_SIZE
+ * sim_config.h - for specification of the maximum job label: MAX_NAME_SIZE
  *
  * Type aliasing means that job_t can be used as an alias for "struct job".
  */
@@ -43,13 +45,15 @@ typedef struct job {
  * process id, job id and label.
  * 
  * The label can be any application-specific string of up to MAX_NAME_SIZE - 1
- * characters. If the given label is less than length MAX_NAME_SIZE - 1, then
+ * length. If the given label is less than length MAX_NAME_SIZE - 1, then
  * the label associated with the job is padded with PAD_CHAR characters up to
  * length MAX_NAME_SIZE - 1. If the given label string is longer than
  * MAX_NAME_SIZE - 1, then the label associated with the job is truncated to
  * length MAX_NAME_SIZE - 1. Padding or truncation ensure that the label stored
- * with a job is exactly length MAX_NAME_SIZE - 1. The job_new, job_copy and  
- * job_set functions all guarantee this property of the label.
+ * with a job is exactly length MAX_NAME_SIZE - 1 (and that the memory 
+ * required for the string does not exceed MAX_NAME_SIZE, including the 
+ * string's nul terminator). The job_new, job_copy and job_set functions all
+ * guarantee this property of the label.
  * 
  * If the label parameter is the empty string or is NULL, the label field
  * of the job will be a MAX_NAME_SIZE - 1 length string of PAD_CHAR characters.
@@ -78,7 +82,7 @@ typedef struct job {
  *      is a string of length exactly MAX_NAME_SIZE - 1, padded with PAD_CHAR 
  *      characters if necessary. If the label parameter is the empty string or
  *      NULL, the  stored label field will be all PAD_CHAR characters. 
- *      Use job_delete to free memory allocated to the job struct.  
+ *      Use job_delete to free memory allocated for the job struct.  
  * On failure: NULL, and errno is set as specified in Errors.
  *
  * Errors:
@@ -99,7 +103,7 @@ job_t* job_new(pid_t pid, unsigned int id, const char* label);
  * Copy from job src to job dst. Assuming the pointers dst and src are 
  * distinct, after copying, src and dst jobs will be distinct objects in memory
  * that are semantically equal as specified by the job_is_equal comparison. 
- * That is, the fields of the jobs pointed to by  dst and src will be equal. 
+ * That is, the fields of the jobs pointed to by dst and src will be equal. 
  * A pointer to the copy is returned. 
  *
  * Combinations of dst and src pointer values are dealt with as follows:
@@ -126,13 +130,13 @@ job_t* job_new(pid_t pid, unsigned int id, const char* label);
  * src - a non-NULL pointer to a job to copy from
  *
  * Return:
- * On success: a pointer to the copied object (the dst pointer). If dst is NULL
- *      a new, dynamically allocated copy of src is created.
+ * On success: a pointer to the copied object (the dst pointer). If dst is 
+ *      NULL, a new, dynamically allocated copy of src is created.
  * On failure: NULL, and errno is set as specified in Errors.
  *
  * Errors:
- * If the call fails, the NULL pointer will be returned. errno is set in the 
- * circumstances specified for job_new.
+ * If the call fails, the NULL pointer will be returned. errno is set as
+ * specified for job_new.
  */
 job_t* job_copy(job_t* dst, job_t* src);
 
@@ -162,7 +166,7 @@ job_t* job_copy(job_t* dst, job_t* src);
  * Return:
  * True if j1 and j2 are equal: j1->id == j2->id and j1->pid == j2->pid and 
  * the job labels are equal according to string comparison, false otherwise.
- * Two NULL pointers are considered equal.
+ * Two identical pointers, including two NULL pointers are considered equal.
  */
 bool job_is_equal(job_t* j1, job_t* j2);
 
@@ -190,7 +194,7 @@ void job_init(job_t* job);
  * function sets all fields of a job.
  *
  * The properties of the label field are preserved by this function. That is,
- * the job's label field will be a string of length exactly MAX_NAME_SIZE - 
+ * the job's label field will be a string of length exactly MAX_NAME_SIZE - 1
  * (with padding or truncation as necessary).
  * 
  * Parameters:
@@ -202,7 +206,7 @@ void job_init(job_t* job);
  *      string length MAX_NAME_SIZE - 1 as described for job_new
  *
  * Return:
- * On success: the job pointer is returned. If job is NULL, this fucntion has
+ * On success: the job pointer is returned. If job is NULL, this function has
  * no effect and the NULL pointer is returned.
  *
  * Note: this function does not dynamically allocate memory
@@ -215,8 +219,6 @@ job_t* job_set(job_t* job, pid_t pid, unsigned int id, const char* label);
  * Delete a job struct that has been dynamically allocated by job_new.
  *
  * If job is NULL this function has no effect.
- *
- * Usage: see job_new
  *
  * Parameters:
  * job - a pointer to a job struct allocated by job_new. 

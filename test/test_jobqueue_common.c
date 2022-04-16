@@ -2,9 +2,55 @@
 #include "test_jobqueue_common.h"
 #include <stdio.h>
 
-static bool equal_jobs(job_t* j1, job_t* j2) {
+static void init_job(job_t* job);
+
+bool equal_jobs(job_t* j1, job_t* j2) {
     return j1->pid == j2->pid && j1->id == j2->id 
-            && !strncmp(j1->label, j2->label, MAX_NAME_SIZE - 1);
+            && !strncmp(j1->label, j2->label, MAX_NAME_SIZE);
+}
+
+void assert_queue_initialised(jobqueue_t* q) {
+    assert_not_null(q);
+    assert_int(q->head, ==, 0);
+    assert_int(q->tail, ==, 0);
+    assert_int(q->buf_size, ==, QUEUE_SIZE);
+    
+    assert_true(jobs_initialised(q->jobs, q->buf_size));    
+}
+
+void set_job(job_t* j, pid_t pid, unsigned int id, const char* label) {
+    j->pid = pid;
+    j->id = id;
+    
+    strncpy(j->label, label ? label : "*******************************",
+        MAX_NAME_SIZE - 1);
+    j->label[MAX_NAME_SIZE - 1] = '\0';
+}
+
+bool jobs_initialised(job_t* jobs, size_t buf_size) {
+    job_t ij;
+    init_job(&ij);
+    int i = 0;
+    bool initialised = true;
+    
+    while (i < buf_size && initialised) {
+        initialised = equal_jobs(&jobs[i], &ij);
+        i++;
+    }
+    
+    return initialised;
+}
+
+static bool is_init_job(job_t* j) {
+    int jsum = j->pid + j->id;
+    for (int i = 0; i < MAX_NAME_SIZE; i++)
+        jsum += j->label[i];
+        
+    return jsum == 0;
+}
+
+static bool equal_and_distinct(job_t* j1, job_t* j2) {
+    return j1 != j2 && j1->label != j2->label && equal_jobs(j1, j2);
 }
 
 static void init_job(job_t* job) {
@@ -12,15 +58,6 @@ static void init_job(job_t* job) {
     job->id = 0;
     
     memset(job->label, 0, MAX_NAME_SIZE);
-}
-
-static void set_job(job_t* j, pid_t pid, unsigned int id, const char* label) {
-    j->pid = pid;
-    j->id = id;
-    
-    strncpy(j->label, label ? label : "*******************************",
-        MAX_NAME_SIZE - 1);
-    j->label[MAX_NAME_SIZE - 1] = '\0';
 }
 
 static void copy_job(job_t* j1, job_t* j2) {
@@ -32,12 +69,12 @@ static bool head_first_job(test_jq_t* test_jq, job_t* expected_job) {
     return equal_jobs(&test_jq->jobs[*test_jq->head], expected_job);
 }
 
-static bool tail_last_job(test_jq_t* test_jq, job_t* expected_job) {
+static bool tail_last_job(test_jq_t* test_jq, job_t* tail_job) {
     // last job is the job behind the tail
     int last_posn = (*test_jq->tail + *test_jq->buf_size - 1) %  
                             *test_jq->buf_size;
     
-    return equal_jobs(&test_jq->jobs[last_posn], expected_job);
+    return equal_jobs(tail_job, &test_jq->jobs[last_posn]);
 }
 
 static bool tq_is_full(test_jq_t* test_jq) {
@@ -135,20 +172,6 @@ static bool fill_queue(test_jq_t* test_jq) {
             && queue_is_full(test_jq);
 }
 
-bool jobs_initialised(job_t* jobs, size_t buf_size) {
-    job_t ij;
-    init_job(&ij);
-    int i = 0;
-    bool initialised = true;
-    
-    while (i < buf_size && initialised) {
-        initialised = equal_jobs(&jobs[i], &ij);
-        i++;
-    }
-    
-    return initialised;
-}
-
 MunitResult test_jq_capacity(test_jq_t* test_jq) {
     assert_int(test_jq->capacity(test_jq->q), ==, *test_jq->buf_size - 1);
    
@@ -162,7 +185,6 @@ MunitResult test_jq_capacity_null(test_jq_t* test_jq) {
 }
 
 MunitResult test_jq_dequeue_fullq(test_jq_t* test_jq) {
-    // tests dequeueing from full queue does not change queue state
     assert_true(jobs_initialised(test_jq->jobs, *test_jq->buf_size));
     assert_true(fill_queue(test_jq));
     
@@ -170,16 +192,22 @@ MunitResult test_jq_dequeue_fullq(test_jq_t* test_jq) {
     
     
     while (!tq_is_empty(test_jq)) {
-        job_t actual_j;
+        job_t param_j;
         job_t expected_j;
         set_job(&expected_j, i + 1, i, NULL);
         
-        job_t* dq = test_jq->dequeue(test_jq->q, &actual_j);       
+        int prev_head = *test_jq->head;
         
-        assert_true(equal_jobs(dq, &expected_j));
-        assert_ptr_equal(dq, &actual_j);
-        assert_ptr_not_equal(dq, &expected_j);
+        job_t* dq_j = test_jq->dequeue(test_jq->q, &param_j); 
         
+        assert_true(is_init_job(&test_jq->jobs[prev_head])); 
+        assert_int(*test_jq->head, ==, (prev_head + 1) % *test_jq->buf_size);
+        
+        assert_false(is_init_job(dq_j)); 
+
+        assert_true(equal_and_distinct(dq_j, &expected_j));
+        assert_ptr_equal(dq_j, &param_j);
+                
         i++;
     }
     
@@ -194,17 +222,23 @@ MunitResult test_jq_dequeue_inout(test_jq_t* test_jq) {
     ops += ops / 2;
     int i = 0;
     for (i = 0; i < ops; i++) {
-        job_t actual_j;
+        job_t param_j;
         job_t expected_j;
         set_job(&expected_j, i + 1, i, NULL);
         
         tq_enqueue(test_jq, &expected_j);
         
-        job_t* dq = test_jq->dequeue(test_jq->q, &actual_j);
+        int prev_head = *test_jq->head;
+
+        job_t* dq_j = test_jq->dequeue(test_jq->q, &param_j);
         
-        assert_true(equal_jobs(dq, &expected_j));
-        assert_ptr_equal(dq, &actual_j);
-        assert_ptr_not_equal(dq, &expected_j);
+        assert_true(is_init_job(&test_jq->jobs[prev_head])); 
+        assert_int(*test_jq->head, ==, (prev_head + 1) % *test_jq->buf_size);
+        
+        assert_false(is_init_job(dq_j)); 
+
+        assert_true(equal_and_distinct(dq_j, &expected_j));
+        assert_ptr_equal(dq_j, &param_j);
     }
     
     assert_int(i, ==, ops);
@@ -226,15 +260,16 @@ MunitResult test_jq_dequeue_emptyq(test_jq_t* test_jq) {
     job_t ij;
     init_job(&ij);
     
-    for (int i = 0; i < buf_size; i++)
+    for (int i = 0; i < buf_size; i++) {
         assert_true(equal_jobs(&test_jq->jobs[i], &ij));
+        assert_true(is_init_job(&test_jq->jobs[i])); 
+    }
 
     job_t j;
     for (int i = 0; i < test_dequeues; i++)
         assert_null(test_jq->dequeue(test_jq->q, &j));
 
     assert_true(queue_is_empty(test_jq));
-
 
     for (int i = 0; i < buf_size; i++)
         assert_true(equal_jobs(&test_jq->jobs[i], &ij));
@@ -246,6 +281,7 @@ MunitResult test_jq_dequeue_emptyq(test_jq_t* test_jq) {
 }
 
 MunitResult test_jq_dequeue_heap(test_jq_t* test_jq) {
+    assert_true(jobs_initialised(test_jq->jobs, *test_jq->buf_size));
     assert_true(fill_queue(test_jq));
     
     int i = 0;
@@ -254,18 +290,23 @@ MunitResult test_jq_dequeue_heap(test_jq_t* test_jq) {
         job_t expected_j;
         set_job(&expected_j, i + 1, i, NULL);
         
-        job_t* hj = &test_jq->jobs[*test_jq->head];
+        int prev_head = *test_jq->head;
+
+        job_t* hj = &test_jq->jobs[prev_head];
         job_t hjval;
         copy_job(&hjval, hj);
-          
-        job_t* dq = test_jq->dequeue(test_jq->q, NULL);       
         
-        assert_true(equal_jobs(dq, &expected_j));
-        assert_true(equal_jobs(dq, &hjval));
-        assert_ptr_not_equal(dq, &expected_j);
-        assert_ptr_not_equal(dq, hj);
+        job_t* dq_j = test_jq->dequeue(test_jq->q, NULL);       
         
-        free(dq); // fail if not dyamically allocated
+        assert_true(is_init_job(hj)); 
+        assert_int(*test_jq->head, ==, (prev_head + 1) % *test_jq->buf_size);
+        
+        assert_false(is_init_job(dq_j)); 
+
+        assert_true(equal_and_distinct(dq_j, &expected_j));
+        assert_true(equal_and_distinct(dq_j, &hjval));
+        
+        free(dq_j); // fail if not dyamically allocated
         i++;
     }
     
@@ -278,7 +319,6 @@ MunitResult test_jq_dequeue_heap(test_jq_t* test_jq) {
 
 MunitResult test_jq_dequeue_null(test_jq_t* test_jq) {
     job_t j;
-    
     assert_null(test_jq->dequeue(NULL, &j));
 
     return MUNIT_OK;
@@ -286,11 +326,21 @@ MunitResult test_jq_dequeue_null(test_jq_t* test_jq) {
 
 MunitResult test_jq_enqueue_tofull(test_jq_t* test_jq) {
     int i = 0;
-    job_t j;
+    job_t enq_j;
 
     for (i = 0; i < *test_jq->buf_size - 1; i++) {
-        set_job(&j, i + 1, i, NULL);
-        test_jq->enqueue(test_jq->q, &j);
+        set_job(&enq_j, i + 1, i, NULL);
+        
+        int prev_tail = *test_jq->tail;
+        
+        test_jq->enqueue(test_jq->q, &enq_j);
+        
+        job_t* tail_j = &test_jq->jobs[prev_tail];
+        
+        assert_false(is_init_job(tail_j)); 
+        assert_int(*test_jq->tail, ==, (prev_tail + 1) % *test_jq->buf_size);
+        
+        assert_true(equal_and_distinct(tail_j, &enq_j));
     }
     
     assert_int(i, ==, *test_jq->buf_size - 1);
@@ -310,15 +360,22 @@ MunitResult test_jq_enqueue_tofull(test_jq_t* test_jq) {
     
     while (!tq_is_empty(test_jq)) {
         job_t expected_j;
-        job_t actual_j;
+        job_t param_j;
         set_job(&expected_j, i + 1, i, NULL);
         
-        job_t* dq = tq_dequeue(test_jq, &actual_j);
+        int prev_head = *test_jq->head;
+        
+        job_t* dq_j = tq_dequeue(test_jq, &param_j);
+        
+        assert_true(is_init_job(&test_jq->jobs[prev_head])); 
+        assert_int(*test_jq->head, ==, (prev_head + 1) % *test_jq->buf_size);
+        
+        assert_false(is_init_job(dq_j)); 
 
-        assert_true(equal_jobs(dq, &expected_j));
-        assert_ptr_equal(dq, &actual_j);
-        assert_ptr_not_equal(dq, &expected_j);
-        assert_ptr_not_equal(dq, &j);
+        assert_true(equal_and_distinct(dq_j, &expected_j));
+        assert_ptr_equal(dq_j, &param_j);       
+        
+        assert_ptr_not_equal(dq_j, &enq_j);
         i++;
     }
     
@@ -333,17 +390,32 @@ MunitResult test_jq_enqueue_inout(test_jq_t* test_jq) {
     ops += ops / 2;
     int i = 0;
     for (i = 0; i < ops; i++) {
-        job_t expected_j;
-        job_t actual_j;
-        set_job(&expected_j, i + 1, i, NULL);
+        job_t enq_j;
+        job_t param_j;
+        set_job(&enq_j, i + 1, i, NULL);
         
-        test_jq->enqueue(test_jq->q, &expected_j);
+        int prev_tail = *test_jq->tail;
         
-        job_t* dq = tq_dequeue(test_jq, &actual_j);
+        test_jq->enqueue(test_jq->q, &enq_j);
         
-        assert_true(equal_jobs(dq, &expected_j));
-        assert_ptr_equal(dq, &actual_j);
-        assert_ptr_not_equal(dq, &expected_j);
+        job_t* tail_j = &test_jq->jobs[prev_tail];
+
+        assert_false(is_init_job(tail_j)); 
+        assert_int(*test_jq->tail, ==, (prev_tail + 1) % *test_jq->buf_size);
+        
+        assert_true(equal_and_distinct(tail_j, &enq_j));
+        
+        int prev_head = *test_jq->head;
+
+        job_t* dq_j = tq_dequeue(test_jq, &param_j);
+        
+        assert_true(is_init_job(&test_jq->jobs[prev_head])); 
+        assert_int(*test_jq->head, ==, (prev_head + 1) % *test_jq->buf_size);
+
+        assert_false(is_init_job(dq_j)); 
+
+        assert_true(equal_and_distinct(dq_j, &enq_j));
+        assert_ptr_equal(dq_j, &param_j);       
     }
     
     assert_int(i, ==, ops);
@@ -388,9 +460,10 @@ MunitResult  test_jq_enqueue_fullq(test_jq_t* test_jq) {
 
 MunitResult test_jq_enqueue_null(test_jq_t* test_jq) {
     job_t j;
-    
+
+    // following should silently succeed 
     test_jq->enqueue(NULL, &j);
-    
+
     job_t saved_jobs[*test_jq->buf_size];
     int head = *test_jq->head;
     int tail = *test_jq->tail;
@@ -670,6 +743,53 @@ MunitResult test_jq_peektail_heap(test_jq_t* test_jq) {
     assert_true(queue_not_full(test_jq));
     assert_true(queue_is_empty(test_jq));
     
+    return MUNIT_OK;
+}
+
+MunitResult test_jq_peektail_wrap(test_jq_t* test_jq) {
+    int i = 0;
+    job_t j;
+    job_t tj;
+
+    int jobs2queue = (*test_jq->buf_size) * 2;
+    
+    for (i = 0; i < jobs2queue; i++) {
+        job_set(&j, i + 1, i, NULL);
+        tq_enqueue(test_jq, &j);
+        job_t tj;
+        assert_true(tail_last_job(test_jq, test_jq->peektail(test_jq->q, &tj)));
+        assert_true(job_is_equal(test_jq->peektail(test_jq->q, &tj), &j));
+        (void) tq_dequeue(test_jq, &j);
+    }
+
+    // double check after filling
+    while (!tq_is_full(test_jq)) {
+        job_set(&j, i + 1, i, NULL);
+        tq_enqueue(test_jq, &j);
+               
+        i++;
+    }
+    
+    assert_true(queue_is_full(test_jq));
+    assert_int(*test_jq->head, ==, 0);
+    assert_int(*test_jq->tail, ==, *test_jq->buf_size - 1);
+
+    (void) tq_dequeue(test_jq, &j);
+    
+    assert_false(queue_is_full(test_jq));
+    assert_int(*test_jq->head, ==, 1);
+    assert_int(*test_jq->tail, ==, *test_jq->buf_size - 1);
+    
+    tq_enqueue(test_jq, &j);
+    assert_true(queue_is_full(test_jq));
+    assert_int(*test_jq->head, ==, 1);
+    assert_int(*test_jq->tail, ==, 0);
+    
+    (void) test_jq->peektail(test_jq->q, &tj);
+    
+    assert_true(equal_jobs(&tj, &j));
+    assert_true(equal_jobs(&tj, &test_jq->jobs[*test_jq->buf_size - 1]));
+
     return MUNIT_OK;
 }
 

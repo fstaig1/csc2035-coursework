@@ -45,7 +45,7 @@
  */
 
 /* 
- * Definition of struct jobqueue that can be used as the basic data structure
+ * Definition of struct jobqueue that can be used as the data structure
  * for sharing definitions of jobs between cooperating processes. 
  *
  * Type alias:
@@ -82,7 +82,7 @@ typedef struct jobqueue {
  *      tail - 0
  *      buf_size - QUEUE_SIZE
  * and each job in the buffer will have pid 0, id 0 and zeroed label array 
- * (each element of each job's label array will have the value).
+ * (each element of each job's label array will have the value 0).
  *
  * jobqueue_init is a utility function to facilitate initialisation of 
  * shared memory versions of a jobqueue (see ipc_jobqueue). For single process
@@ -217,10 +217,10 @@ size_t jobqueue_capacity(jobqueue_t* jq);
  *
  * Return:
  * A pointer to copy of the job that was at the head of the queue or, 
- * if the queue is empty, the NULL pointer. If the dst paremter is not NULL, 
- * the job is to the job pointed to by dst and the dst pointer is returned. If
+ * if the queue is empty, the NULL pointer. If the dst paremeter is not NULL, 
+ * the value of the returned pointer is the same as the value of dst. If
  * dst is NULL, a new job is dynamically allocated and copied to and a pointer
- * to the new job returned.
+ * to the new job is returned.
  * If jq is NULL, this function has no effect and the NULL pointer is returned.
  *
  * Important note:
@@ -310,7 +310,7 @@ void jobqueue_enqueue(jobqueue_t* jq, job_t* job);
  * True if the queue is empty, false otherwise.
  * 
  * If jq is NULL, the queue is considered empty. This guarantees the semantics
- * of the jobqueue_dequeue - ensuring that a job cannot be dequeued from a 
+ * of jobqueue_dequeue - ensuring that a job cannot be dequeued from a 
  * NULL queue.
  */
 bool jobqueue_is_empty(jobqueue_t* jq);
@@ -319,7 +319,7 @@ bool jobqueue_is_empty(jobqueue_t* jq);
  * jobqueue_is_full(jobqueue_t* jq)
  *
  * Returns true if the queue is full, the number of jobs in the queue has 
- * reached its capacity, and false otherwise. A NULL queue is considered full.
+ * reached queue capacity, and false otherwise. A NULL queue is considered full.
  *
  * Usage: see jobqueue_enqueue
  *
@@ -330,7 +330,7 @@ bool jobqueue_is_empty(jobqueue_t* jq);
  * True if the queue is full, false otherwise.
  *
  * If jq is NULL, the queue is considered full. This guarantees the semantics
- * of the jobqueue_enqueue - ensuring that a job cannot be enqueued on a 
+ * of jobqueue_enqueue - ensuring that a job cannot be enqueued on a 
  * NULL queue.
  */
 bool jobqueue_is_full(jobqueue_t* jq);
@@ -341,8 +341,7 @@ bool jobqueue_is_full(jobqueue_t* jq);
  * If the queue is not empty, copies the job at the head of the queue to the  
  * job pointed to by dst (if dst is not NULL). If dst is NULL, a new job is 
  * dynamically allocated and the job at the head of the queue is copied to it.
- * Whether dst is NULL or not, the function returns a pointer to the copy 
- * (which will be dst if dst is not NULL).
+ * Whether dst is NULL or not, the function returns a pointer to the copy.
  * If the queue is empty, the function returns the NULL pointer. The caller can
  * check whether the queue is empty prior to calling jobqueue_peekhead to
  * avoid this.
@@ -407,8 +406,7 @@ job_t* jobqueue_peekhead(jobqueue_t* jq, job_t* dst);
  * If the queue is not empty, copies the job at the tail of the queue to the  
  * job pointed to by dst (if dst is not NULL). If dst is NULL, a new job is 
  * dynamically allocated and the job at the tail of the queue is copied to it.
- * Whether dst is NULL or not, the function returns a pointer to the copy 
- * (which will be dst if dst is not NULL).
+ * Whether dst is NULL or not, the function returns a pointer to the copy.
  * If the queue is empty, the function returns the NULL pointer. The caller can
  * check whether the queue is empty prior to calling jobqueue_peekhead to
  * avoid this.

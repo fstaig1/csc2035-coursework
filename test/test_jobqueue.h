@@ -64,6 +64,8 @@ MunitResult test_jobqueue_peektail_heap(const MunitParameter params[],
     void* fixture);
 MunitResult test_jobqueue_peektail_null(const MunitParameter params[], 
     void* fixture);
+MunitResult test_jobqueue_peektail_wrap(const MunitParameter params[], 
+    void* fixture);
 
 MunitResult test_jobqueue_delete(const MunitParameter params[], 
     void* fixture);
@@ -128,6 +130,8 @@ static MunitTest tests[] = {
     { "/test_jobqueue_peektail_full", test_jobqueue_peektail_full,
         test_setup, test_tear_down, MUNIT_TEST_OPTION_NONE, NULL },
     { "/test_jobqueue_peektail_heap", test_jobqueue_peektail_heap,
+        test_setup, test_tear_down, MUNIT_TEST_OPTION_NONE, NULL },
+    { "/test_jobqueue_peektail_wrap", test_jobqueue_peektail_wrap,
         test_setup, test_tear_down, MUNIT_TEST_OPTION_NONE, NULL },
     { "/test_jobqueue_peektail_null", test_jobqueue_peektail_null,
         test_setup, test_tear_down, MUNIT_TEST_OPTION_NONE, NULL },

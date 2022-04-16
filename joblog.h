@@ -14,7 +14,8 @@
  * 2. delete any existing log for the given process
  *
  * Note joblogs are initialised as part of the set of simulations in 
- * the simulation_setup function in sim_control.c.
+ * the simulation_setup function in sim_control.c. Or as part of the 
+ * joblog tests.
  *
  * Parameters:
  * proc - the non-NULL descriptor of a process that will log jobs
@@ -49,8 +50,10 @@ int joblog_init(proc_t* proc);
  * The entry will be a string of the following form: 
  *      pid:<proc_id>,id:<job_id>,label:<label>
  * Whether buf is NULL or not, the string is returned as the result of calling
- * the function. If buf is NULL, it is the responsibility of the programmer
- * to deallocate the resulting dynamically allocated string.
+ * the function.
+ * If buf is NULL, it is the responsibility of the programmer who calls the 
+ * the joblog_read_entry function to deallocate the resulting dynamically
+ * allocated string.
  * The returned string does not include an end of line character. See
  * joblog_write_entry for more information on the log entry format.
  *
@@ -76,7 +79,7 @@ int joblog_init(proc_t* proc);
  * On success: a string that is the entry in the given process' log specified 
  *      by the given entry_num. If the string is dynamically allocated (see 
  *      above), it is the responsibility of the user of this function to free
- *      the memory allocated by the function - see Usage.
+ *      the memory allocated by the function.
  * On failure: NULL, and failures are handled as specified in the Notes 
  *      section
  *
@@ -88,7 +91,7 @@ int joblog_init(proc_t* proc);
  * does NOT set the errno for following errors:
  * 1. proc is NULL
  * 2. entry_num is < 0
- * 3. a filename cannot be generated from the given 
+ * 3. a filename cannot be generated from the given proc descriptor
  *
  * Notes:
  * If joblog_read_entry() fails, in the following cases there will be no 
@@ -108,6 +111,10 @@ int joblog_init(proc_t* proc);
  * are in effect ignored and the errno is set to the value it had on entry
  * to the function or, in some circumstances, an error may cause program
  * termination.
+ * In summary, in the event of a detectable error or failure, implementations 
+ * of this function will ensure that it is as if the function has no effect 
+ * and no side effects and, in particular, will set the errno to the value 
+ * it had before the function was called.
  *
  * See also:
  * proc.h - for a description of the proc type
@@ -124,14 +131,13 @@ char* joblog_read_entry(proc_t* proc, int entry_num, char* buf);
  *
  * where <proc_id> is replaced by the 7 digit id of the process that created
  * the job, <job_id> is replaced by a 5 digit job id and <label> is replaced by 
- * the job's label of length MAX_NAME_SIZE - 1. The numeric ides are padded 
+ * the job's label of length MAX_NAME_SIZE - 1. The numeric ids are padded 
  * with leading 0s if they have less than the specified number of digits. The 
  * label is padded with trailing PAD_CHAR characters (see job.h). 
  * JOBLOG_ENTRY_FMT defines the format of an entry string.
  *
- * For example, for a job with pid of creating process 5 and id 10 and created 
- * with label "newjob", the log entry written to the calling process' log 
- * file will be:
+ * For example, for a job with pid of creating process 5 and id 10 and label
+ * "newjob", the log entry will be:
  * 
  * pid:0000005,id:00010,label:newjob************************
  *
@@ -146,7 +152,7 @@ char* joblog_read_entry(proc_t* proc, int entry_num, char* buf);
  * job.
  *
  * Log entries are appended to the log file. That is, the oldest log entry is 
- * at line 1, the next oldest at line 2 etc.
+ * at line 1 (entry number 0), the next oldest at line 2 etc.
  *
  * See README_joblog_example.txt for an example joblog file.
  *
@@ -183,6 +189,10 @@ char* joblog_read_entry(proc_t* proc, int entry_num, char* buf);
  *      function returns and the value of errno is the same as it was on 
  *      entry to the function. Some errors that cause program termination 
  *      cannot be suppressed.
+ * In summary, in the event of a detectable error or failure, implementations 
+ * of this function will ensure that it is as if the function has no effect 
+ * and no side effects and, in particular, will set the errno to the value 
+ * it had before the function was called.
  *
  * See also:
  * job.h - for a description of the job type
@@ -202,12 +212,12 @@ void joblog_write_entry(proc_t* proc, job_t* job);
  * proc - the non-null descriptor of the process whose log to delete
  *
  * Return:
- * joblog_delete() does not return any value. See the Notes section.
+ * joblog_delete() does not return any value.
  *
  * Errors:
  * joblog_delete() returns without reporting errors. Therefore, errno 
  * will have the value it had on entry to the function after this function 
- * returns. See the Notes section.
+ * returns. 
  *
  * See also:
  * proc.h - for a description of the proc type

@@ -3,26 +3,46 @@
 
 include make.cfg
 
+rmsho := rmsho
+runrmsho := run$(rmsho)
+
 # top-level targets
-all: tests
+all: $(runrmsho) tests 
 .PHONY: all
 
-tests: $(depend_sources_r01:%=$(testbin)/test_%)
+tests: $(depend_sources_r02:%=$(testbin)/test_%)
 .PHONY: tests
+
+$(runrmsho): clean_$(rmsho) $(rmsho)
+	./$(runrmsho).sh
+.PHONY: $(runrmsho)
 
 depend:
 	@make -f $(make_depend)
 
-clean: clean_$(bin) clean_core clean_$(objects) clean_out 
+$(submission): clean_$(submission)
+	-@mkdir -p ./$@/$(assignment)-submit
+	$(foreach f, $(submission_sources), cp ./$f.c ./$@/$(assignment)-submit;)
+	cd ./$@; \
+	    zip -r -q ./$(assignment)-submit.zip ./$(assignment)-submit
+
+clean: clean_$(bin) clean_core clean_$(objects) clean_submission clean_out 
 .PHONY: clean
 
-clean_all: clean clean_depend clean_dist clean_munit_lib
+clean_all: clean clean_depend clean_dist clean_$(rmsho)
 .PHONY: clean_all
 
--include $(depend_sources_r01:%=./$(depend)/%.d)
--include $(testdepend_sources_r01:%=./$(testdepend)/%.d)
+-include $(depend_sources_r02:%=./$(depend)/%.d)
+-include $(testdepend_sources_r02:%=./$(testdepend)/%.d)
+
+# application targets
+$(rmsho): $(rmsho).c
+	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS) $(LFLAGS_SEM)
 
 # test targets
+$(testbin)/test_ipc: $(testobjects)/test_ipc.o $(test_ipc_libs) | $(testbin)
+	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS)
+
 $(testbin)/test_joblog: $(testobjects)/test_joblog.o \
     $(job_lib) $(joblog_lib) $(munit_lib) $(procs4tests_lib) $(proc_lib) \
     | $(testbin)
@@ -32,6 +52,20 @@ $(testbin)/test_jobqueue: $(testobjects)/test_jobqueue.o $(job_lib) \
     $(objects)/jobqueue.o $(munit_lib) $(test_jobqueue_common_lib) | $(testbin)
 	$(CC) $(CFLAGS) $^ -o $@
 
+$(testbin)/test_ipc_jobqueue: $(testobjects)/test_ipc_jobqueue.o \
+    $(queue_libs) $(test_ipc_libs) $(test_jobqueue_common_lib) \
+    $(job_lib) | $(testbin)
+	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS)
+
+$(testbin)/test_sem_jobqueue: $(testobjects)/test_sem_jobqueue.o \
+    $(sem_queue_libs) $(test_ipc_libs)  $(test_jobqueue_common_lib) \
+    $(job_lib) | $(testbin)
+	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS) $(LFLAGS_SEM)
+
+$(testbin)/test_mutex_%: $(testobjects)/test_mutex_%.o $(objects)/mutex_%.o \
+    $(test_ipc_libs) | $(testbin)
+	$(CC) $(CFLAGS) $^ -o $@ $(LFLAGS)
+    
 $(testbin)/test_%: $(testobjects)/test_%.o $(objects)/%.o $(munit_lib) \
     | $(testbin)
 	$(CC) $(CFLAGS) $^ -o $@
@@ -58,13 +92,9 @@ clean_core:
     
 clean_$(objects):
 	-rm -f ./*.o
-	-rm -rf ./$(objects)
 	-rm -rf ./$(testobjects)
+	-rm -rf ./$(objects)
 .PHONY: clean_obj
-
-clean_munit_lib:
-	-rm -f $(munit_lib)
-.PHONY: clean_munit
 
 clean_out:
 	-rm -rf ./out
@@ -77,6 +107,14 @@ clean_$(dist):
 clean_$(depend):
 	@make -f $(make_depend) clean
 .PHONY: clean_$(depend)
+
+clean_$(rmsho):
+	-rm -rf ./$(rmsho)
+.PHONY: clean_$(rmsho)
+
+clean_$(submission):
+	-rm -rf ./$(submission)
+.PHONY: clean_$(submission)
 
 # make directory sub-targets
 $(bin): ; -@mkdir -p ./$@

@@ -12,6 +12,7 @@ int main(int argc, char** argv) {
 
 static bool valid_shobject_name(char* name_buf, char* actual_label, 
     char* expected_label) {
+    
     char expected_name[MAX_NAME_SIZE];
     
     char* user = getenv("USER");

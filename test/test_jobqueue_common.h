@@ -30,8 +30,12 @@ typedef struct test_jq {
     job_t* jobs;
 } test_jq_t;
 
+// utility functions
+void set_job(job_t* j, pid_t pid, unsigned int id, const char* label);
 bool jobs_initialised(job_t* jobs, size_t buf_size);
-
+void assert_queue_initialised(jobqueue_t* q);
+bool equal_jobs(job_t* j1, job_t* j2);
+// tests
 MunitResult test_jq_capacity(test_jq_t* test_jq);
 MunitResult test_jq_capacity_null(test_jq_t* test_jq);
 
@@ -62,5 +66,6 @@ MunitResult test_jq_peekhead_null(test_jq_t* test_jq);
 MunitResult test_jq_peektail_empty(test_jq_t* test_jq);
 MunitResult test_jq_peektail_full(test_jq_t* test_jq);
 MunitResult test_jq_peektail_heap(test_jq_t* test_jq);
+MunitResult test_jq_peektail_wrap(test_jq_t* test_jq);
 MunitResult test_jq_peektail_null(test_jq_t* test_jq);
 #endif

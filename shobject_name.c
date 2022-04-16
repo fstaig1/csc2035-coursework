@@ -3,7 +3,6 @@
  * 200799272
  */
 
-#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include "sim_config.h"
@@ -26,13 +25,9 @@ char* shobject_name(char* name_buf, const char* label) {
     char* result;
     char* user = getenv("USER");
 
-    if (!user) {
-        user = "anon";
-    }
+    if (!user) {user = "anon";}
 
-    if (!label || !label[0]) {
-        label = "none";
-    }
+    if (!label || !label[0]) {label = "none";}
 
     if(name_buf) {
         int r = snprintf(name_buf,  // buffer
@@ -44,13 +39,11 @@ char* shobject_name(char* name_buf, const char* label) {
         result = r < 0? NULL : name_buf;
     } 
     else{
-        int r = asprintf(&result,  // address of buffer
+        (void) asprintf(&result,  // address of buffer
                         SHOBJ_NAME_FORMAT,
                         user,
                         label);
         free(name_buf);
-        
     }
-    
     return result;
 }

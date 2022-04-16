@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
 #include "jobqueue.h"
+#include "job.h"
 
 /* 
  * DO NOT EDIT the jobqueue_init function.
@@ -24,14 +26,22 @@ void jobqueue_init(jobqueue_t* jq) {
  * initialise it.
  */
 jobqueue_t* jobqueue_new() {
-    return NULL;
+	jobqueue_t* njq = (jobqueue_t*) malloc(sizeof(jobqueue_t));
+    jobqueue_init(njq);
+    return njq;
 }
 
 /* 
  * TODO: you must implement this function.
  */
 size_t jobqueue_capacity(jobqueue_t* jq) {
-    return 0;
+	size_t size = 0;
+    if (jq) {
+        for (int i = 0; i < QUEUE_SIZE-1; i += 1) {
+            if (&jq->jobs[i] != NULL) {size += 1;}
+        }
+    }
+    return size;
 }
 
 /* 
@@ -46,7 +56,17 @@ size_t jobqueue_capacity(jobqueue_t* jq) {
  *      this function 
  */
 job_t* jobqueue_dequeue(jobqueue_t* jq, job_t* dst) {
-    return NULL;
+    if (jobqueue_is_empty(jq) || !jq) {return NULL;}
+    if (!dst) {dst = (job_t*) malloc(sizeof(job_t));}
+    
+    job_t* j = &jq->jobs[jq->head];
+    
+    job_copy(dst,j);
+    job_init(j);
+    
+    jq->head = (jq->head + 1) % jq->buf_size;
+        
+    return dst;
 }
 
 /* 
@@ -72,7 +92,7 @@ bool jobqueue_is_empty(jobqueue_t* jq) {
  * TODO: you must implement this function.
  */
 bool jobqueue_is_full(jobqueue_t* jq) {
-    return false;
+    return !jq || jq->head == (jq->tail +1) % jq->buf_size;
 }
 
 /* 
@@ -96,12 +116,21 @@ job_t* jobqueue_peekhead(jobqueue_t* jq, job_t* dst) {
  *      calculated from those values)
  */
 job_t* jobqueue_peektail(jobqueue_t* jq, job_t* dst) {
-    return NULL;
+    if (jobqueue_is_empty(jq) || !jq) {return NULL;}
+    if (!dst) {dst = (job_t*) malloc(sizeof(job_t));}
+	
+    job_t* j = &jq->jobs[jq->tail-1];
+    
+    job_copy(dst,j);
+    
+        
+    return dst;
 }
 
 /* 
  * TODO: you must implement this function.
  */
 void jobqueue_delete(jobqueue_t* jq) {
+    free(jq);
     return;
 }

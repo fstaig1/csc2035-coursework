@@ -7,15 +7,6 @@ int main(int argc, char** argv) {
     return munit_suite_main(&suite, NULL, argc, argv);
 }
 
-static void assert_queue_initialised(jobqueue_t* q) {
-    assert_not_null(q);
-    assert_int(q->head, ==, 0);
-    assert_int(q->tail, ==, 0);
-    assert_int(q->buf_size, ==, QUEUE_SIZE);
-    
-    assert_true(jobs_initialised(q->jobs, q->buf_size));    
-}
-
 void* test_setup(const MunitParameter params[], void* user_data) {
     test_jq_t* test_jq = (test_jq_t*) malloc(sizeof(test_jq_t));
     
@@ -34,7 +25,7 @@ void* test_setup(const MunitParameter params[], void* user_data) {
     test_jq->jobs = q->jobs;
     test_jq->capacity = (size_t (*)(void*)) jobqueue_capacity;
     test_jq->is_full = (bool (*)(void*)) jobqueue_is_full;
-    test_jq->is_empty = (bool (*)(void*))jobqueue_is_empty;
+    test_jq->is_empty = (bool (*)(void*)) jobqueue_is_empty;
     test_jq->enqueue = (void (*)(void*, job_t*)) jobqueue_enqueue;
     test_jq->dequeue = (job_t* (*)(void*, job_t*)) jobqueue_dequeue;
     test_jq->peekhead = (job_t* (*)(void*, job_t*)) jobqueue_peekhead;
@@ -198,7 +189,13 @@ MunitResult test_jobqueue_peektail_heap(const MunitParameter params[],
     return test_jq_peektail_heap((test_jq_t*) fixture);
 }
 
+MunitResult test_jobqueue_peektail_wrap(const MunitParameter params[], 
+    void* fixture) {
+    return test_jq_peektail_wrap((test_jq_t*) fixture);
+}
+
 MunitResult test_jobqueue_peektail_null(const MunitParameter params[], 
     void* fixture) {
     return test_jq_peektail_null((test_jq_t*) fixture);
 }
+

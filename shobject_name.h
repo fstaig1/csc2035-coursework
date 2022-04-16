@@ -12,23 +12,21 @@
  * If the user name cannot be obtained from the environment, then the name 
  * anon is used.
  * If the user-provided name_buf is not NULL, it is assumed to be a buffer of
- * size MAX_NAME_SIZE and a shared object name string is written to buffer. 
+ * size MAX_NAME_SIZE and a shared object name string is written to the buffer. 
  * If name_buf is NULL, a name string is dynamically allocated. In this case
- * it is the user's responsibility to free the memory allocated for the name
- * after they have finished with it.
+ * it is the responsibility of the user of this function to free the memory
+ * allocated for the name after they have finished with it.
  *
  * Usage:
  * By providing a char buffer to write the name to:
  * 
  *      char name_buf[MAX_NAME_SIZE];
  *      shobject_name(name_buf, "app_label");   
- *                  // replace app_label with an application specific label 
- *                  // for your shared object. After execution of 
- *                  // shobject_name in this example, name_buf will be the
- *                  // string: "/csc2035.<user>.app_label" 
+ *                  // After execution of shobject_name in this example,
+ *                  // name_buf will be the string: 
+ *                  // "/csc2035.<user>.app_label" 
  *                  // where <user> is replaced by the current user
  *                  // see: SHOBJ_NAME_FORMAT
- *
  *
  * By providing a NULL name_buf to request a dynamically allocated string:
  *
@@ -51,7 +49,7 @@
  * of up MAX_NAME_SIZE size. That is, the string will be at most length
  * MAX_NAME_SIZE - 1, be terminated with a '\0' character, and in the form
  * specified by SHOBJ_NAME_FORMAT. If the label parameter or user name would
- * result in a  string longer than length MAX_NAME_SIZE - 1, then the 
+ * result in a string longer than length MAX_NAME_SIZE - 1, then the 
  * string is truncated to length MAX_NAME_SIZE - 1 and, for example, the
  * characters of label that make the string exceed that length are discarded.
  * If a user name cannot be obtained from the environment, then the user name
@@ -71,7 +69,7 @@
  * undefined and the calling process may terminate. If the buffer is larger 
  * than MAX_NAME_SIZE bytes, no more than MAX_NAME_SIZE bytes of characters 
  * are written to name_buf including a terminating '\0' character.
- * Note: if name_buf is NULL, the shobject_name function dynamically allocates
+ * If name_buf is NULL, the shobject_name function dynamically allocates
  * a buffer of sufficient size and of no more than MAX_NAME_SIZE bytes.
  */
 char* shobject_name(char* name_buf, const char* label);

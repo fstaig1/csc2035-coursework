@@ -21,9 +21,8 @@ proc_t* proc_new(proctype_t type, char* name, pid_t pid, int jobs, bool is_init,
      
     if (jobs < 1) 
         return NULL;
-        
-    if (!name || !name[0])
-        name = "none";
+
+    name = name && name[0] ? name : "none"; 
     
     proc_t* proc = (proc_t*) malloc(sizeof(proc_t));
     

@@ -62,6 +62,11 @@ void set_test_job(job_t* job, pid_t pid, unsigned int i, int label_idx) {
     }
 }
 
+bool equal_jobs(job_t* j1, job_t* j2) {
+    return j1->pid == j2->pid && j1->id == j2->id 
+            && !strncmp(j1->label, j2->label, MAX_NAME_SIZE);
+}
+
 void assert_init_job(job_t* job) {
     assert_not_null(job);
     assert_int(job->pid, ==, 0);
@@ -145,13 +150,20 @@ MunitResult test_job_copy_stack(const MunitParameter params[], void* fixture) {
     pid_t pid = getpid();
     job_t src;
     job_t dst;
+    job_t pre_cpy_dst = {-1, 0, "*"};
     
     for (int i = 0; i < TEST_LABELS; i++) {
+        dst = pre_cpy_dst;
         set_test_job(&src, pid, i, i);
         job_t* cpy = job_copy(&dst, &src);
         assert_ptr_equal(cpy, &dst);
+        assert_ptr_equal(cpy->label, dst.label);
         assert_ptr_not_equal(cpy, &src);
-
+        assert_ptr_not_equal(cpy->label, src.label);
+        assert_false(equal_jobs(&src, &pre_cpy_dst));
+        assert_true(equal_jobs(cpy, &src));
+        assert_false(equal_jobs(cpy, &pre_cpy_dst));
+        
         munit_logf(MUNIT_LOG_INFO, NCL_INFO_CALL_ITER_FMT, 
             __LINE__ + 1,  "assert_valid_job", i);
         assert_valid_job(cpy, pid, i, i);
@@ -168,7 +180,8 @@ MunitResult test_job_copy_heap(const MunitParameter params[], void* fixture) {
         set_test_job(&src, pid, i, i);
         job_t* cpy = job_copy(NULL, &src);
         assert_ptr_not_equal(cpy, &src);
-
+        assert_ptr_not_equal(cpy->label, src.label);
+        
         munit_logf(MUNIT_LOG_INFO, NCL_INFO_CALL_ITER_FMT, 
             __LINE__ + 1,  "assert_valid_job", i);
         assert_valid_job(cpy, pid, i, i);
@@ -192,6 +205,27 @@ MunitResult test_job_copy_identity(const MunitParameter params[],
             __LINE__ + 1,  "assert_valid_job", i);
         assert_valid_job(cpy, pid, i, i);
     }
+    
+    job_t eq2src;
+    
+    for (int i = 0; i < TEST_LABELS; i++) {
+        set_test_job(&src, pid, i, i);
+        set_test_job(&eq2src, pid, i, i);
+        assert_int(eq2src.pid, ==, src.pid);
+        assert_int(eq2src.id, ==, src.id);
+        assert_string_equal(eq2src.label, src.label);
+        
+        job_t* cpy = job_copy(&eq2src, &src);
+        
+        assert_ptr_equal(cpy, &eq2src);
+        assert_ptr_equal(cpy->label, eq2src.label);
+        assert_ptr_not_equal(cpy, &src);
+        assert_ptr_not_equal(cpy->label, src.label);
+        
+        munit_logf(MUNIT_LOG_INFO, NCL_INFO_CALL_ITER_FMT, 
+            __LINE__ + 1,  "assert_valid_job", i);
+        assert_valid_job(cpy, pid, i, i);
+    }      
     
     return MUNIT_OK;
 }

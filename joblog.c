@@ -75,19 +75,36 @@ int joblog_init(proc_t* proc) {
  *      and the documentation in joblog.h for when to do dynamic allocation
  */
 char* joblog_read_entry(proc_t* proc, int entry_num, char* buf) {
-    FILE* f = fopen(new_log_name(proc), "r");
-    
-    
-    
-    
-    (void) fseek(f, entry_num * (JOBLOG_ENTRY_SIZE), SEEK_SET);
-    (void) fgets(buf, JOBLOG_ENTRY_SIZE, f);
-    buf[JOBLOG_ENTRY_SIZE - 1] = '\0';
+    int init_errno = errno;
         
+    char* result = NULL;
     
-    
-    fclose(f);
-    return buf;
+    if (proc && entry_num >= 0) {
+        char* fname = new_log_name(proc);
+        if (fname) {
+            FILE* f = fopen(fname, "r");
+        
+            if (f) {
+            
+                if (!buf) {buf = (char*) malloc(JOBLOG_ENTRY_SIZE);}
+                
+                if (fseek(f, entry_num * (JOBLOG_ENTRY_SIZE) , SEEK_SET) == 0) {
+
+                    char* r = fgets(buf, JOBLOG_ENTRY_SIZE, f); 
+                    
+                    if (r != NULL) {buf[JOBLOG_ENTRY_SIZE - 1] = '\0';} 
+                    else {buf = NULL;}
+                    
+                    result = buf;
+                }
+            fclose(f);
+            free(fname);
+            }
+        }
+        
+    } 
+    errno = init_errno;
+    return result;
 }
 
 /* 
@@ -98,14 +115,14 @@ char* joblog_read_entry(proc_t* proc, int entry_num, char* buf) {
  */
 void joblog_write_entry(proc_t* proc, job_t* job) {
 
-    char* log = new_log_name(proc);
-    FILE* f = fopen(log, "a");
+    if (job && proc) {
+        char* log = new_log_name(proc);
+        FILE* f = fopen(log, "a");
 
-    fprintf(f, JOBLOG_ENTRY_FMT, job->pid, job->id, job->label);
-           // "pid:0000005,id:00010,label:newjob************************\n" 
-
-    fclose(f);
-
+        fprintf(f, JOBLOG_ENTRY_FMT, job->pid, job->id, job->label);
+    
+        fclose(f);
+    }
     return;
 }
 
@@ -113,5 +130,6 @@ void joblog_write_entry(proc_t* proc, job_t* job) {
  * TODO: you must implement this function.
  */
 void joblog_delete(proc_t* proc) {
+    (void) remove(new_log_name(proc));
     return;
 }

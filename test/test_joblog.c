@@ -368,6 +368,7 @@ MunitResult test_joblog_read_entry_null(const MunitParameter params[],
     
     proc_t* proc = new_test_proc(99);
     
+    // no file should exist because none created
     x = joblog_read_entry(proc, 0, NULL);
         
     assert_null(x);

@@ -3,8 +3,8 @@
 
 include make.cfg
 
-source_depends := $(depend_sources_r01:%=./$(depend)/%.d)
-test_depends := $(testdepend_sources_r01:%=./$(testdepend)/%.d)
+source_depends := $(depend_sources_r02:%=./$(depend)/%.d)
+test_depends := $(testdepend_sources_r02:%=./$(testdepend)/%.d)
 
 depend: make_source_depends make_test_depends
 .PHONY: depend
@@ -14,7 +14,7 @@ make_source_depends:
 	-@rm -rf ./$(depend)
 	-@mkdir -p ./$(depend)
 	@set -e; \
-	$(foreach src, $(depend_sources_r01), \
+	$(foreach src, $(depend_sources_r02), \
 	    $(CC) -MM $(CFLAGS) $(src).c > ./$(depend)/$(src).d.0;)
 	@set -e; \
 	$(foreach df, $(source_depends), \
@@ -36,8 +36,9 @@ make_test_depends:
 	@echo 'making test dependencies ...'
 	-@rm -rf ./$(testdepend)
 	-@mkdir -p ./$(testdepend)
+	-@mkdir -p ./$(munitdepend)
 	@set -e; \
-	$(foreach t, $(testdepend_sources_r01), \
+	$(foreach t, $(testdepend_sources_r02), \
 	    $(CC) -MM $(CFLAGS) ./$(test)/$(t).c \
 	    > ./$(testdepend)/$(t).d.0;)
 	@set -e; \
@@ -53,6 +54,7 @@ make_test_depends:
 	$(foreach df, $(test_depends), \
 	    echo '\t$$(CC) -c $$(CFLAGS) $$< -o $$@' >> $(df);)
 	-@rm -rf ./$(testdepend)/*.d.?
+	-@rm -rf ./$(munitdepend)/*.d.?
 	@echo 'dependencies made in ./$(testdepend)'
 .PHONY: make_test_depends
 
