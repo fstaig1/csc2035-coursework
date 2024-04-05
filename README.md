@@ -1,5 +1,5 @@
 # csc2035 coursework 1
-first coursework assignment for my systems programming module
+Coursework for my C module
 
 ---
 
